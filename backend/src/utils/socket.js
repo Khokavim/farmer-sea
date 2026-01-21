@@ -5,7 +5,7 @@ const { User } = require('../models');
 const initializeSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
+      origin: process.env.FRONTEND_URL || "http://localhost:8080",
       methods: ["GET", "POST"]
     }
   });

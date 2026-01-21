@@ -1,73 +1,144 @@
-# Welcome to your Lovable project
+# FarmSea - Agricultural E-commerce Platform
 
-## Project info
+A full-stack e-commerce platform for agricultural products, connecting farmers, suppliers, and buyers.
 
-**URL**: https://lovable.dev/projects/d9c83035-c381-41ce-8bf8-208aef447fb3
+## Project Structure
 
-## How can I edit this code?
+This project is organized into two main directories:
 
-There are several ways of editing your application.
+- **`frontend/`** - React + TypeScript frontend application
+- **`backend/`** - Node.js + Express backend API
 
-**Use Lovable**
+## Getting Started
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d9c83035-c381-41ce-8bf8-208aef447fb3) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v18 or higher)
+- npm or yarn
+- PostgreSQL (for production) or SQLite (for development)
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+#### Quick Start (Root Level)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+From the root directory, you can install all dependencies and run both frontend and backend:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Install all dependencies (root, frontend, and backend)
+npm run install:all
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Start frontend (from root)
+npm start
+# or
+npm run start:frontend
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Start backend (from root)
+npm run start:backend
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Run both frontend and backend simultaneously
+npm run dev:all
+```
+
+#### Individual Setup
+
+**Frontend Setup:**
+
+```sh
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+# or
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The frontend will run on `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+**Backend Setup:**
 
-**Use GitHub Codespaces**
+```sh
+# Navigate to backend directory
+cd backend
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Install dependencies
+npm install
 
-## What technologies are used for this project?
+# Copy environment file and configure
+cp env.example .env
 
-This project is built with:
+# Start development server
+npm run dev
+# or
+npm start
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+The backend API will run on `http://localhost:5000`
 
-## How can I deploy this project?
+## Technology Stack
 
-Simply open [Lovable](https://lovable.dev/projects/d9c83035-c381-41ce-8bf8-208aef447fb3) and click on Share -> Publish.
+### Frontend
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - Component library (Radix UI)
+- **React Router** - Client-side routing
+- **TanStack React Query** - Server state management
+- **React Hook Form + Zod** - Form handling and validation
 
-## Can I connect a custom domain to my Lovable project?
+### Backend
+- **Node.js** - Runtime environment
+- **Express** - Web framework
+- **Sequelize** - ORM
+- **PostgreSQL/SQLite** - Database
+- **Socket.io** - Real-time WebSocket communication
+- **JWT** - Authentication
+- **bcryptjs** - Password hashing
 
-Yes, you can!
+## Features
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- User authentication and authorization (Buyer, Farmer, Supplier, Admin)
+- Product marketplace with filtering and search
+- Shopping cart and checkout
+- Order management
+- Real-time messaging between users
+- Dashboard for different user roles
+- Payment integration
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Development
+
+### Running Both Frontend and Backend
+
+**Option 1: Using root-level scripts (Recommended)**
+```sh
+# From root directory - runs both simultaneously
+npm run dev:all
+```
+
+**Option 2: Using separate terminals**
+
+**Terminal 1 - Frontend:**
+```sh
+npm run start:frontend
+# or
+cd frontend && npm start
+```
+
+**Terminal 2 - Backend:**
+```sh
+npm run start:backend
+# or
+cd backend && npm run dev
+```
+
+## Deployment
+
+See `docs/DEPLOYMENT.md` and `docs/DEPLOYMENT_GUIDE.md` for detailed deployment instructions.
+
+## License
+
+MIT
