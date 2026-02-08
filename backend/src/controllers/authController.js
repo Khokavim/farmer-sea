@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../utils/jwt');
 const { User } = require('../models');
 
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
-    process.env.JWT_SECRET || 'your-secret-key',
+    getJwtSecret(),
     { expiresIn: '7d' }
   );
 };
@@ -230,4 +231,3 @@ module.exports = {
   changePassword,
   logout
 };
-

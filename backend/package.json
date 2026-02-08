@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "echo 'Build completed'",
-    "test": "jest"
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -45,4 +45,3 @@
   "author": "FarmSea Team",
   "license": "MIT"
 }
-

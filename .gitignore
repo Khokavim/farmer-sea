@@ -11,6 +11,13 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+*.sqlite
+*.sqlite3
+# Test artifacts
+frontend/playwright-report
+frontend/test-results
 
 # Editor directories and files
 .vscode/*

@@ -17,13 +17,15 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import Marketplace from "./pages/Marketplace";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
-import Orders from "./pages/Orders";
-import Messages from "./pages/Messages";
+import Orders from './pages/Orders';
+import Messages from './pages/Messages';
+import Payouts from './pages/Payouts';
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import FarmerAccount from "./pages/accounts/FarmerAccount";
 import SupplierAccount from "./pages/accounts/SupplierAccount";
 import BuyerAccount from "./pages/accounts/BuyerAccount";
+import AgentOnboarding from "./pages/AgentOnboarding";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -48,9 +50,11 @@ const App = () => (
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                       <Route path="/marketplace" element={<Marketplace />} />
+                      <Route path="/agent-onboarding" element={<AgentOnboarding />} />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/checkout" element={<Checkout />} />
                       <Route path="/orders" element={<Orders />} />
+                      <Route path="/payouts" element={<ProtectedRoute><Payouts /></ProtectedRoute>} />
                       <Route path="/messages" element={<Messages />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/contact" element={<Contact />} />

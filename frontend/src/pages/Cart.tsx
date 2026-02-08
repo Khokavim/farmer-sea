@@ -20,11 +20,15 @@ import {
 } from 'lucide-react';
 
 const Cart = () => {
-  const { cart, updateQuantity, removeItem, clearCart } = useCart();
+  const { state, updateQuantity, removeItem, clearCart, getItemCount, getTotalPrice } = useCart();
   const navigate = useNavigate();
   const [promoCode, setPromoCode] = useState('');
 
   const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+  const subtotal = getTotalPrice();
+  const shippingCost = subtotal > 5000 ? 0 : 500;
+  const tax = subtotal * 0.1;
+  const total = subtotal + tax + shippingCost;
 
   const handleCheckout = () => {
     navigate('/checkout');
@@ -42,7 +46,7 @@ const Cart = () => {
     }
   };
 
-  if (cart.state.items.length === 0) {
+  if (state.items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -75,7 +79,7 @@ const Cart = () => {
             <div>
               <h1 className="text-3xl font-bold text-foreground">Shopping Cart</h1>
               <p className="text-muted-foreground">
-                {cart.getItemCount()} {cart.getItemCount() === 1 ? 'item' : 'items'} in your cart
+                {getItemCount()} {getItemCount() === 1 ? 'item' : 'items'} in your cart
               </p>
             </div>
             <Button variant="outline" onClick={handleContinueShopping}>
@@ -98,7 +102,7 @@ const Cart = () => {
             </div>
 
             <div className="space-y-4">
-              {cart.state.items.map((item) => (
+              {state.items.map((item) => (
                 <Card key={item.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
@@ -189,23 +193,23 @@ const Cart = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Subtotal ({cart.getItemCount()} items)</span>
-                    <span>{formatPrice(cart.getTotalPrice())}</span>
+                    <span>Subtotal ({getItemCount()} items)</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Shipping</span>
                     <span>
-                      <Badge variant="secondary">Free</Badge>
+                      {shippingCost === 0 ? <Badge variant="secondary">Free</Badge> : formatPrice(shippingCost)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Tax (5%)</span>
-                    <span>{formatPrice(cart.getTotalPrice() * 0.05)}</span>
+                    <span>Tax (10%)</span>
+                    <span>{formatPrice(tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>{formatPrice(cart.getTotalPrice() * 1.05)}</span>
+                    <span>{formatPrice(total)}</span>
                   </div>
                 </div>
 
@@ -228,12 +232,12 @@ const Cart = () => {
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Truck className="w-4 h-4 text-primary" />
-                    <span className="font-medium text-sm">Shipping</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Free shipping on orders over ₦50,000
-                  </p>
+                  <span className="font-medium text-sm">Shipping</span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Free shipping on orders over ₦5,000
+                </p>
+              </div>
 
                 <Button onClick={handleCheckout} className="w-full" size="lg">
                   Proceed to Checkout

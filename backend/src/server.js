@@ -14,6 +14,13 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const messageRoutes = require('./routes/messages');
+const paymentRoutes = require('./routes/payments');
+const shipmentRoutes = require('./routes/shipments');
+const payoutRoutes = require('./routes/payouts');
+const logisticsRoutes = require('./routes/logisticsCapacity');
+const agentRoutes = require('./routes/agent');
+const onboardingDraftRoutes = require('./routes/onboardingDrafts');
+const { processQueuedPayouts } = require('./controllers/payoutController');
 
 const app = express();
 const server = http.createServer(app);
@@ -38,7 +45,12 @@ app.use(cors({
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
@@ -61,6 +73,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/agent', agentRoutes);
+app.use('/api/onboarding-drafts', onboardingDraftRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/shipments', shipmentRoutes);
+app.use('/api/payouts', payoutRoutes);
+app.use('/api/logistics', logisticsRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -93,8 +111,12 @@ const startServer = async () => {
     // Sync database models
     await syncDatabase();
     
-    // Seed database with initial data
-    await seedDatabase();
+    // Seed database with initial data (non-production by default)
+    const shouldSeed =
+      process.env.SEED_DB === 'true' || process.env.NODE_ENV !== 'production';
+    if (shouldSeed) {
+      await seedDatabase();
+    }
     
     // Initialize WebSocket
     const io = initializeSocket(server);
@@ -106,6 +128,18 @@ const startServer = async () => {
       console.log(`🌐 Health check: http://localhost:${PORT}/health`);
       console.log(`🔌 WebSocket server initialized`);
     });
+
+    if (process.env.AUTO_PAYOUTS_ENABLED === 'true') {
+      const intervalMs = Number.parseInt(process.env.AUTO_PAYOUTS_INTERVAL_MS || '300000', 10);
+      const limit = Number.parseInt(process.env.AUTO_PAYOUTS_LIMIT || '25', 10);
+      setInterval(async () => {
+        try {
+          await processQueuedPayouts(limit);
+        } catch (error) {
+          console.error('Auto payout execution error:', error?.message || error);
+        }
+      }, intervalMs);
+    }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
@@ -135,6 +169,8 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-startServer();
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;

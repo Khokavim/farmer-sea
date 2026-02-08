@@ -1,27 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Leaf, Menu, User, LogOut, Settings, ShoppingCart } from "lucide-react";
+import { Leaf, Menu, User, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContextNew";
-import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
-import CartDrawer from "@/components/cart/CartDrawer";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
-  const { getItemCount } = useCart();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const handleAuth = () => {
-    navigate('/auth');
   };
 
   return (
@@ -54,21 +46,6 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
-            {/* Cart */}
-            <CartDrawer>
-              <Button variant="ghost" className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                {getItemCount() > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                  >
-                    {getItemCount()}
-                  </Badge>
-                )}
-              </Button>
-            </CartDrawer>
-
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -107,16 +84,7 @@ const Header = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <>
-                <Button variant="ghost" className="text-foreground hover:text-primary" onClick={handleAuth}>
-                  Sign In
-                </Button>
-                <Button className="bg-primary hover:bg-primary-hover text-primary-foreground" onClick={handleAuth}>
-                  Get Started
-                </Button>
-              </>
-            )}
+            ) : null}
           </div>
 
           {/* Mobile Menu Button */}
@@ -169,16 +137,7 @@ const Header = () => {
                       Log out
                     </Button>
                   </>
-                ) : (
-                  <>
-                    <Button variant="ghost" className="justify-start text-foreground hover:text-primary" onClick={handleAuth}>
-                      Sign In
-                    </Button>
-                    <Button className="bg-primary hover:bg-primary-hover text-primary-foreground" onClick={handleAuth}>
-                      Get Started
-                    </Button>
-                  </>
-                )}
+                ) : null}
               </div>
             </nav>
           </div>

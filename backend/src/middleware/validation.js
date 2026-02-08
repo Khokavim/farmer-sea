@@ -25,8 +25,8 @@ const validateUserRegistration = [
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
   body('role')
-    .isIn(['farmer', 'supplier', 'buyer'])
-    .withMessage('Role must be farmer, supplier, or buyer'),
+    .isIn(['farmer', 'supplier', 'buyer', 'logistics'])
+    .withMessage('Role must be farmer, supplier, buyer, or logistics'),
   body('phone')
     .optional()
     .isLength({ min: 10, max: 15 })

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -80,7 +80,7 @@ class ApiService {
     return this.request('/auth/profile');
   }
 
-  async updateProfile(updates: any) {
+  async updateProfile(updates: Record<string, unknown>) {
     return this.request('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -133,14 +133,14 @@ class ApiService {
     return this.request(`/products/${id}`);
   }
 
-  async createProduct(productData: any) {
+  async createProduct(productData: Record<string, unknown>) {
     return this.request('/products', {
       method: 'POST',
       body: JSON.stringify(productData),
     });
   }
 
-  async updateProduct(id: string, updates: any) {
+  async updateProduct(id: string, updates: Record<string, unknown>) {
     return this.request(`/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -167,8 +167,8 @@ class ApiService {
       productId: string;
       quantity: number;
     }>;
-    shippingAddress: any;
-    billingAddress?: any;
+    shippingAddress: Record<string, unknown>;
+    billingAddress?: Record<string, unknown>;
     notes?: string;
   }) {
     return this.request('/orders', {
@@ -251,7 +251,7 @@ class ApiService {
     conversationId: string;
     content: string;
     messageType?: string;
-    attachments?: any[];
+    attachments?: unknown[];
   }) {
     return this.request('/messages/send', {
       method: 'POST',
@@ -274,8 +274,86 @@ class ApiService {
   async getUnreadCount() {
     return this.request('/messages/unread-count');
   }
+
+  async chatWithAgent(payload: {
+    message: string;
+    role?: string;
+    history?: Array<{ role: string; content: string }>;
+    intentAnchor?: string;
+    sessionId?: string;
+  }) {
+    return this.request('/agent/chat', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getOnboardingDraft(params: { sessionId?: string; email?: string }) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString();
+    return this.request(`/onboarding-drafts${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async saveOnboardingDraft(payload: {
+    sessionId?: string;
+    email?: string;
+    role?: string;
+    data?: Record<string, unknown>;
+  }) {
+    return this.request('/onboarding-drafts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Payout endpoints
+  async getPayouts(params?: {
+    status?: string;
+    beneficiaryType?: string;
+    orderId?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value.toString());
+        }
+      });
+    }
+
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/payouts?${queryString}` : '/payouts';
+    return this.request(endpoint);
+  }
+
+  async createPaystackRecipientSelf(data: {
+    accountNumber: string;
+    bankCode: string;
+    name: string;
+    type?: string;
+  }) {
+    return this.request('/payouts/recipients/self', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+  async initializePaystackPayment(orderId: string) {
+    return this.request('/payments/paystack/initialize', {
+      method: 'POST',
+      body: JSON.stringify({ orderId }),
+    });
+  }
+
+  async verifyPaystackPayment(reference: string) {
+    const query = new URLSearchParams({ reference }).toString();
+    return this.request(`/payments/paystack/verify?${query}`);
+  }
 }
 
 export const apiService = new ApiService();
 export default apiService;
-

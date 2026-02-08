@@ -6,7 +6,6 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContextNew';
 import { useNavigate } from 'react-router-dom';
 import PaymentModal from '@/components/payment/PaymentModal';
-import { PaymentRequest } from '@/types/payment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +17,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { apiService } from '@/services/api';
+import type { PaymentInitDetails } from '@/types/payment';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -46,14 +47,22 @@ const checkoutSchema = z.object({
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
+type CreatedOrderData = {
+  id: string;
+  totalAmount?: number;
+  total_amount?: number;
+};
 
 const Checkout = () => {
-  const { cart, clearCart } = useCart();
+  const { state, clearCart, getTotalPrice, getItemCount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     register,
@@ -79,18 +88,59 @@ const Checkout = () => {
 
   const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
 
+  const subtotal = getTotalPrice();
+  const tax = subtotal * 0.1;
+  const shippingCost = subtotal > 5000 ? 0 : 500;
+  const total = subtotal + tax + shippingCost;
+
   const onSubmit = async (data: CheckoutFormData) => {
-    // Open payment modal instead of processing directly
-    setShowPaymentModal(true);
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    try {
+      const items = state.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity
+      }));
+
+      const shippingAddress = {
+        street: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.postalCode
+      };
+
+      const response = await apiService.createOrder({
+        items,
+        shippingAddress,
+        billingAddress: shippingAddress,
+        notes: data.deliveryInstructions
+      });
+
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to create order');
+      }
+
+      const createdOrder = response.data as CreatedOrderData;
+      const amount = Number(createdOrder.totalAmount ?? createdOrder.total_amount ?? 0);
+      setOrderId(createdOrder.id);
+      setPaymentAmount(Number.isFinite(amount) ? amount : 0);
+      setShowPaymentModal(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Checkout failed';
+      setErrorMessage(message);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handlePaymentSuccess = async (paymentDetails: any) => {
-    setIsProcessing(true);
-    
+  const handlePaymentSuccess = async (_paymentDetails: PaymentInitDetails) => {
     try {
-      // Mock order processing with payment details
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       // Clear cart after successful order
       clearCart();
       setOrderSuccess(true);
@@ -101,8 +151,6 @@ const Checkout = () => {
       }, 3000);
     } catch (error) {
       console.error('Order processing failed:', error);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -110,7 +158,7 @@ const Checkout = () => {
     navigate('/cart');
   };
 
-  if (cart.state.items.length === 0 && !orderSuccess) {
+  if (state.items.length === 0 && !orderSuccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -305,11 +353,11 @@ const Checkout = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <RadioGroup
-                  value={watchedPaymentMethod}
-                  onValueChange={(value) => setValue('paymentMethod', value as any)}
-                  className="space-y-4"
-                >
+	                <RadioGroup
+	                  value={watchedPaymentMethod}
+	                  onValueChange={(value) => setValue('paymentMethod', value as CheckoutFormData['paymentMethod'])}
+	                  className="space-y-4"
+	                >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="card" id="card" />
                     <Label htmlFor="card" className="flex-1">
@@ -395,6 +443,11 @@ const Checkout = () => {
 
           {/* Order Summary */}
           <div className="space-y-6">
+            {errorMessage && (
+              <Alert variant="destructive">
+                <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
@@ -405,23 +458,21 @@ const Checkout = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Subtotal ({cart.getItemCount()} items)</span>
-                    <span>{formatPrice(cart.getTotalPrice())}</span>
+                    <span>Subtotal ({getItemCount()} items)</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Shipping</span>
-                    <span>
-                      Free
-                    </span>
+                    <span>{shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Tax (5%)</span>
-                    <span>{formatPrice(cart.getTotalPrice() * 0.05)}</span>
+                    <span>Tax (10%)</span>
+                    <span>{formatPrice(tax)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span>{formatPrice(cart.getTotalPrice() * 1.05)}</span>
+                    <span>{formatPrice(total)}</span>
                   </div>
                 </div>
 
@@ -465,7 +516,7 @@ const Checkout = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {cart.state.items.map((item) => (
+                  {state.items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
                       <img
                         src={item.product.images[0] || '/placeholder.svg'}
@@ -492,23 +543,16 @@ const Checkout = () => {
         </form>
 
         {/* Payment Modal */}
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-          paymentRequest={{
-            amount: cart.getTotalPrice() * 1.05,
-            currency: 'NGN',
-            email: user?.email || '',
-            name: user?.name || '',
-            phone: user?.phone || '',
-            reference: `FS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            metadata: {
-              orderItems: cart.state.items.length,
-              useEscrow: watchedUseEscrow,
-            },
-          }}
-        />
+        {orderId && (
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            onSuccess={handlePaymentSuccess}
+            orderId={orderId}
+            amount={paymentAmount || total}
+            currency="NGN"
+          />
+        )}
       </div>
       <Footer />
     </div>

@@ -5,21 +5,40 @@ const createConversation = async (req, res) => {
   try {
     const { participantId, title } = req.body;
 
+    if (!participantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'participantId is required'
+      });
+    }
+
+    if (participantId === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create a conversation with yourself'
+      });
+    }
+
     // Check if conversation already exists between these users
-    const existingConversation = await Conversation.findOne({
+    const possibleConversations = await Conversation.findAll({
+      where: { type: 'direct', isActive: true },
       include: [
         {
           model: User,
           as: 'participants',
+          attributes: ['id', 'name', 'role', 'profileImage', 'isVerified'],
+          through: { attributes: [] },
+          required: true,
           where: {
-            [Op.or]: [
-              { id: req.user.id },
-              { id: participantId }
-            ]
+            id: { [Op.in]: [req.user.id, participantId] }
           }
         }
       ]
     });
+
+    const existingConversation = possibleConversations.find((conv) =>
+      Array.isArray(conv.participants) && conv.participants.length === 2
+    );
 
     if (existingConversation) {
       return res.json({
@@ -38,10 +57,21 @@ const createConversation = async (req, res) => {
     // Add participants
     await conversation.addParticipants([req.user.id, participantId]);
 
+    const fullConversation = await Conversation.findByPk(conversation.id, {
+      include: [
+        {
+          model: User,
+          as: 'participants',
+          attributes: ['id', 'name', 'role', 'profileImage', 'isVerified'],
+          through: { attributes: [] }
+        }
+      ]
+    });
+
     res.status(201).json({
       success: true,
       message: 'Conversation created successfully',
-      data: conversation
+      data: fullConversation || conversation
     });
   } catch (error) {
     console.error('Create conversation error:', error);
@@ -63,7 +93,7 @@ const getConversations = async (req, res) => {
         {
           model: User,
           as: 'participants',
-          attributes: ['id', 'name', 'profileImage', 'isVerified'],
+          attributes: ['id', 'name', 'role', 'profileImage', 'isVerified'],
           through: { attributes: [] }
         },
         {
@@ -75,7 +105,7 @@ const getConversations = async (req, res) => {
             {
               model: User,
               as: 'sender',
-              attributes: ['id', 'name']
+              attributes: ['id', 'name', 'role', 'profileImage']
             }
           ]
         }
@@ -114,7 +144,7 @@ const getConversationById = async (req, res) => {
         {
           model: User,
           as: 'participants',
-          attributes: ['id', 'name', 'profileImage', 'isVerified'],
+          attributes: ['id', 'name', 'role', 'profileImage', 'isVerified'],
           through: { attributes: [] }
         }
       ]
@@ -146,7 +176,7 @@ const getConversationById = async (req, res) => {
         {
           model: User,
           as: 'sender',
-          attributes: ['id', 'name', 'profileImage']
+          attributes: ['id', 'name', 'role', 'profileImage']
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -231,7 +261,7 @@ const sendMessage = async (req, res) => {
         {
           model: User,
           as: 'sender',
-          attributes: ['id', 'name', 'profileImage']
+          attributes: ['id', 'name', 'role', 'profileImage']
         }
       ]
     });
@@ -254,6 +284,35 @@ const sendMessage = async (req, res) => {
 const markMessagesAsRead = async (req, res) => {
   try {
     const { conversationId } = req.params;
+
+    const conversation = await Conversation.findByPk(conversationId, {
+      include: [
+        {
+          model: User,
+          as: 'participants',
+          attributes: ['id'],
+          through: { attributes: [] }
+        }
+      ]
+    });
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found'
+      });
+    }
+
+    const isParticipant = conversation.participants.some(
+      participant => participant.id === req.user.id
+    );
+
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update messages in this conversation'
+      });
+    }
 
     // Update all unread messages in conversation
     await Message.update(
@@ -367,4 +426,3 @@ module.exports = {
   deleteMessage,
   getUnreadCount
 };
-

@@ -2,6 +2,12 @@ export type PaymentMethod = 'card' | 'bank_transfer' | 'wallet' | 'ussd' | 'qr';
 export type PaymentStatus = 'pending' | 'processing' | 'successful' | 'failed' | 'cancelled' | 'refunded';
 export type PaymentProvider = 'flutterwave' | 'paystack';
 
+export interface PaymentInitDetails {
+  reference?: string;
+  method: PaymentMethod;
+  provider: PaymentProvider;
+}
+
 export interface PaymentDetails {
   id: string;
   orderId: string;
@@ -15,7 +21,7 @@ export interface PaymentDetails {
   customerEmail: string;
   customerName: string;
   customerPhone?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   paidAt?: string;
@@ -31,7 +37,7 @@ export interface PaymentRequest {
   phone?: string;
   reference: string;
   callbackUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PaymentResponse {
@@ -58,4 +64,3 @@ export interface EscrowDetails {
   autoReleaseDays: number;
   manualRelease: boolean;
 }
-

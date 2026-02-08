@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useOrders } from '@/contexts/OrderContext';
 import { OrderProvider } from '@/contexts/OrderContext';
+import { useAuth } from '@/contexts/AuthContextNew';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { 
@@ -24,9 +26,11 @@ import {
 import { Order, OrderStatus } from '@/types/order';
 
 const OrdersContent = () => {
-  const { state, setFilters, clearFilters } = useOrders();
+  const { user } = useAuth();
+  const { state, setFilters, clearFilters, updateOrder } = useOrders();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
   const formatDate = (date: string) => new Date(date).toLocaleDateString();
@@ -77,6 +81,70 @@ const OrdersContent = () => {
     { value: 'shipped', label: 'Shipped', count: state.stats.shippedOrders },
     { value: 'delivered', label: 'Delivered', count: state.stats.deliveredOrders },
   ];
+
+  const updateStatus = async (orderId: string, status: OrderStatus) => {
+    try {
+      setUpdatingOrderId(orderId);
+      await updateOrder({ orderId, status });
+      toast({
+        title: 'Order updated',
+        description: `Status set to ${status}.`,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update order';
+      toast({
+        title: 'Update failed',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  const renderActions = (order: Order) => {
+    const role = user?.role;
+    const isBusy = state.isLoading || updatingOrderId === order.id;
+
+    const isSeller = role === 'farmer' || role === 'supplier';
+    const isBuyer = role === 'buyer';
+    const isPaid = order.paymentStatus === 'paid';
+
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm">
+          <Eye className="w-4 h-4 mr-1" />
+          View
+        </Button>
+
+        {isSeller && isPaid && order.status === 'pending' && (
+          <Button size="sm" disabled={isBusy} onClick={() => updateStatus(order.id, 'confirmed')}>
+            Confirm
+          </Button>
+        )}
+
+        {isSeller && isPaid && order.status === 'confirmed' && (
+          <Button size="sm" disabled={isBusy} onClick={() => updateStatus(order.id, 'processing')}>
+            Start Processing
+          </Button>
+        )}
+
+        {isSeller && isPaid && order.status === 'processing' && (
+          <Button size="sm" disabled={isBusy} onClick={() => updateStatus(order.id, 'shipped')}>
+            <Truck className="w-4 h-4 mr-1" />
+            Mark Shipped
+          </Button>
+        )}
+
+        {isBuyer && isPaid && order.status === 'shipped' && (
+          <Button size="sm" disabled={isBusy} onClick={() => updateStatus(order.id, 'delivered')}>
+            <CheckCircle className="w-4 h-4 mr-1" />
+            Confirm Delivery
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,7 +239,7 @@ const OrdersContent = () => {
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(value: any) => handleStatusFilter(value)}>
+          <Select value={statusFilter} onValueChange={(value) => handleStatusFilter(value)}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -248,23 +316,7 @@ const OrdersContent = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
-                            </Button>
-                            {order.status === 'pending' && (
-                              <Button size="sm">
-                                Confirm
-                              </Button>
-                            )}
-                            {order.status === 'confirmed' && (
-                              <Button size="sm">
-                                <Truck className="w-4 h-4 mr-1" />
-                                Ship
-                              </Button>
-                            )}
-                          </div>
+                          {renderActions(order)}
                         </div>
                       </CardContent>
                     </Card>
@@ -319,23 +371,7 @@ const OrdersContent = () => {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm">
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
-                                {order.status === 'pending' && (
-                                  <Button size="sm">
-                                    Confirm
-                                  </Button>
-                                )}
-                                {order.status === 'confirmed' && (
-                                  <Button size="sm">
-                                    <Truck className="w-4 h-4 mr-1" />
-                                    Ship
-                                  </Button>
-                                )}
-                              </div>
+                              {renderActions(order)}
                             </div>
                           </CardContent>
                         </Card>

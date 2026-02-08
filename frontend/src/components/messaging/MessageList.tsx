@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useMessages } from '@/contexts/MessageContext';
-import { MessageProvider } from '@/contexts/MessageContext';
+import { useMessages, MessageProvider } from '@/contexts/MessageContext';
+import { useAuth } from '@/contexts/AuthContextNew';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,10 +17,11 @@ import {
   Image as ImageIcon,
   FileText
 } from 'lucide-react';
-import { Message, Conversation } from '@/types/message';
 
 const MessageListContent = () => {
   const { state, setActiveConversation, sendMessage } = useMessages();
+  
+  const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -180,12 +181,12 @@ const MessageListContent = () => {
                   <div
                     key={message.id}
                     className={`flex ${
-                      message.senderId === 'current-user-id' ? 'justify-end' : 'justify-start'
+                      message.senderId === user?.id ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        message.senderId === 'current-user-id'
+                        message.senderId === user?.id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-muted'
                       }`}

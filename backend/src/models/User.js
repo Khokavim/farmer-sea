@@ -31,7 +31,7 @@ const User = sequelize.define('User', {
     }
   },
   role: {
-    type: DataTypes.ENUM('farmer', 'supplier', 'buyer', 'admin'),
+    type: DataTypes.ENUM('farmer', 'supplier', 'buyer', 'logistics', 'admin'),
     allowNull: false,
     defaultValue: 'farmer'
   },
@@ -58,6 +58,10 @@ const User = sequelize.define('User', {
     defaultValue: false
   },
   profileImage: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  payoutRecipientCode: {
     type: DataTypes.STRING,
     allowNull: true
   },

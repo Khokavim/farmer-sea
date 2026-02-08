@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Eye, EyeOff, Tractor, Building2, Store } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Tractor, Building2, Store, Truck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContextNew';
 import { SignupCredentials, UserRole } from '@/types/auth';
 
@@ -17,7 +17,7 @@ const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
-  role: z.enum(['farmer', 'supplier', 'buyer'] as const),
+  role: z.enum(['farmer', 'supplier', 'buyer', 'logistics'] as const),
   phone: z.string().optional(),
   businessName: z.string().optional(),
   location: z.string().optional(),
@@ -32,9 +32,10 @@ interface SignupFormProps {
   onSuccess?: () => void;
   onSwitchToLogin?: () => void;
   defaultRole?: string;
+  defaultProfile?: Record<string, string>;
 }
 
-const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onSwitchToLogin, defaultRole }) => {
+const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onSwitchToLogin, defaultRole, defaultProfile }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +55,17 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onSwitchToLogin, def
 
   // Set default role if provided
   useEffect(() => {
-    if (defaultRole && ['farmer', 'supplier', 'buyer'].includes(defaultRole)) {
+    if (defaultRole && ['farmer', 'supplier', 'buyer', 'logistics'].includes(defaultRole)) {
       setValue('role', defaultRole as UserRole);
     }
-  }, [defaultRole, setValue]);
+    if (defaultProfile) {
+      if (defaultProfile.name) setValue('name', defaultProfile.name);
+      if (defaultProfile.email) setValue('email', defaultProfile.email);
+      if (defaultProfile.phone) setValue('phone', defaultProfile.phone);
+      if (defaultProfile.businessName) setValue('businessName', defaultProfile.businessName);
+      if (defaultProfile.location) setValue('location', defaultProfile.location);
+    }
+  }, [defaultRole, defaultProfile, setValue]);
 
   const onSubmit = async (data: SignupFormData) => {
     try {
@@ -88,6 +96,12 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onSwitchToLogin, def
       label: 'Business Buyer',
       description: 'Source fresh produce for your business',
       icon: Store,
+    },
+    {
+      value: 'logistics' as UserRole,
+      label: 'Logistics Partner',
+      description: 'Move produce and handle cold-chain delivery',
+      icon: Truck,
     },
   ];
 

@@ -651,6 +651,12 @@ npm test
 # Frontend tests (when implemented)
 cd frontend
 npm test
+
+# Frontend UI E2E (Playwright)
+cd frontend
+npm install
+npx playwright install
+npm run test:e2e
 ```
 
 ### Test Coverage

@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { getJwtSecret } = require('./jwt');
 
 const initializeSocket = (server) => {
   const io = new Server(server, {
@@ -18,7 +19,7 @@ const initializeSocket = (server) => {
         return next(new Error('Authentication error'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const decoded = jwt.verify(token, getJwtSecret());
       const user = await User.findByPk(decoded.userId);
       
       if (!user || !user.isActive) {
@@ -140,4 +141,3 @@ const initializeSocket = (server) => {
 };
 
 module.exports = { initializeSocket };
-

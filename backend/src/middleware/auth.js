@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const { getJwtSecret } = require('../utils/jwt');
 
 const authenticateToken = async (req, res, next) => {
   try {
@@ -13,7 +14,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, getJwtSecret());
     const user = await User.findByPk(decoded.userId);
     
     if (!user || !user.isActive) {
@@ -71,7 +72,7 @@ const optionalAuth = async (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      const decoded = jwt.verify(token, getJwtSecret());
       const user = await User.findByPk(decoded.userId);
       if (user && user.isActive) {
         req.user = user;
@@ -89,4 +90,3 @@ module.exports = {
   authorizeRoles,
   optionalAuth
 };
-

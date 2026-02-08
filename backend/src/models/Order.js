@@ -9,8 +9,7 @@ const Order = sequelize.define('Order', {
   },
   orderNumber: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
   },
   status: {
     type: DataTypes.ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'),

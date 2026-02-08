@@ -26,19 +26,21 @@ function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'LOAD_CART':
       return { ...state, items: action.payload, isLoading: false };
-    case 'ADD_ITEM':
+    case 'ADD_ITEM': {
       const existingItem = state.items.find(item => item.id === action.payload.id);
       if (existingItem) {
+        const nextQty = existingItem.quantity + action.payload.quantity;
         return {
           ...state,
           items: state.items.map(item =>
             item.id === action.payload.id
-              ? { ...item, quantity: item.quantity + action.payload.quantity }
+              ? { ...item, quantity: nextQty, totalPrice: item.product.price * nextQty }
               : item
           )
         };
       }
       return { ...state, items: [...state.items, action.payload] };
+    }
     case 'REMOVE_ITEM':
       return { ...state, items: state.items.filter(item => item.id !== action.payload) };
     case 'UPDATE_QUANTITY':
@@ -46,7 +48,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
         ...state,
         items: state.items.map(item =>
           item.id === action.payload.id
-            ? { ...item, quantity: action.payload.quantity }
+            ? { ...item, quantity: action.payload.quantity, totalPrice: item.product.price * action.payload.quantity }
             : item
         ).filter(item => item.quantity > 0)
       };
@@ -79,8 +81,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedCart = localStorage.getItem('cart');
         if (savedCart) {
-          const items = JSON.parse(savedCart);
-          dispatch({ type: 'LOAD_CART', payload: items });
+          const parsed = JSON.parse(savedCart);
+          const items = Array.isArray(parsed) ? parsed : [];
+          const normalized = items
+            .map((item) => {
+              const price = Number(item?.product?.price ?? 0);
+              const quantity = Number(item?.quantity ?? 0);
+              const totalPrice = Number(item?.totalPrice);
+              return {
+                ...item,
+                product: {
+                  ...item?.product,
+                  price: Number.isFinite(price) ? price : 0,
+                },
+                quantity: Number.isFinite(quantity) ? quantity : 0,
+                totalPrice: Number.isFinite(totalPrice) ? totalPrice : (Number.isFinite(price) ? price : 0) * (Number.isFinite(quantity) ? quantity : 0),
+              };
+            })
+            .filter((item) => item?.id && item?.product?.id && item.quantity > 0);
+
+          dispatch({ type: 'LOAD_CART', payload: normalized });
         } else {
           dispatch({ type: 'LOAD_CART', payload: [] });
         }
@@ -144,7 +164,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Get total price
   const getTotalPrice = (): number => {
-    return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return state.items.reduce((total, item) => total + (item.product.price * item.quantity), 0);
   };
 
   // Get item by ID

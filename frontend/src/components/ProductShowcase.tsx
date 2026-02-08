@@ -42,7 +42,7 @@ const ProductShowcase = () => {
   ];
 
   return (
-    <section className="py-16 lg:py-24 bg-background">
+    <section className="pt-2 pb-12 lg:pt-4 lg:pb-20 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-full px-4 py-2 mb-4">
@@ -114,11 +114,6 @@ const ProductShowcase = () => {
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <HeroButton size="lg" variant="outline">
-            View All Products
-          </HeroButton>
-        </div>
       </div>
     </section>
   );

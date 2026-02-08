@@ -17,6 +17,8 @@ const getAllProducts = async (req, res) => {
 
     const offset = (page - 1) * limit;
     const whereClause = { status };
+    const dialect = Product.sequelize?.getDialect?.() || 'sqlite';
+    const likeOperator = dialect === 'postgres' ? Op.iLike : Op.like;
 
     // Add filters
     if (category) {
@@ -24,11 +26,14 @@ const getAllProducts = async (req, res) => {
     }
 
     if (search) {
-      whereClause[Op.or] = [
-        { name: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } },
-        { tags: { [Op.contains]: [search] } }
+      const orFilters = [
+        { name: { [likeOperator]: `%${search}%` } },
+        { description: { [likeOperator]: `%${search}%` } }
       ];
+      if (dialect === 'postgres') {
+        orFilters.push({ tags: { [Op.contains]: [search] } });
+      }
+      whereClause[Op.or] = orFilters;
     }
 
     if (minPrice || maxPrice) {

@@ -19,8 +19,11 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      // This repo exports hooks/constants alongside components in many files (shadcn/ui, contexts).
+      // Fast Refresh still works; the rule is too noisy here.
+      "react-refresh/only-export-components": "off",
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "error",
     },
   },
 );

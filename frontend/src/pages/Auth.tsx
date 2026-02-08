@@ -64,6 +64,7 @@ const Auth = () => {
                 onSuccess={handleAuthSuccess}
                 onSwitchToLogin={switchToLogin}
                 defaultRole={(location.state as { defaultRole?: string })?.defaultRole}
+                defaultProfile={(location.state as { defaultProfile?: Record<string, string> })?.defaultProfile}
               />
             </TabsContent>
           </Tabs>

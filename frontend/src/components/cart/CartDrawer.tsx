@@ -18,6 +18,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ children }) => {
   const navigate = useNavigate();
 
   const formatPrice = (price: number) => `₦${price.toLocaleString()}`;
+  const subtotal = getTotalPrice();
+  const shippingCost = subtotal > 5000 ? 0 : 500;
+  const tax = subtotal * 0.1;
+  const total = subtotal + tax + shippingCost;
 
   const handleCheckout = () => {
     setIsOpen(false);
@@ -140,22 +144,20 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ children }) => {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal ({getItemCount()} items)</span>
-                  <span>{formatPrice(getTotalPrice())}</span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Shipping</span>
-                  <span>
-                    Free
-                  </span>
+                  <span>{shippingCost === 0 ? 'Free' : formatPrice(shippingCost)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Tax (5%)</span>
-                  <span>{formatPrice(getTotalPrice() * 0.05)}</span>
+                  <span>Tax (10%)</span>
+                  <span>{formatPrice(tax)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total</span>
-                  <span>{formatPrice(getTotalPrice() * 1.05)}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
               </div>
 

@@ -45,7 +45,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
     { value: 'out_of_stock', label: 'Out of Stock' },
   ];
 
-  const handleFilterChange = (key: keyof ProductFilters, value: any) => {
+  const handleFilterChange = <K extends keyof ProductFilters>(key: K, value: ProductFilters[K]) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 
@@ -112,7 +112,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
             <Label>Category</Label>
             <Select
               value={filters.category || ''}
-              onValueChange={(value) => handleFilterChange('category', value || undefined)}
+              onValueChange={(value) => handleFilterChange('category', (value || undefined) as ProductCategory | undefined)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All categories" />
@@ -133,7 +133,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
             <Label>Quality Grade</Label>
             <Select
               value={filters.quality || ''}
-              onValueChange={(value) => handleFilterChange('quality', value || undefined)}
+              onValueChange={(value) => handleFilterChange('quality', (value || undefined) as QualityGrade | undefined)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All grades" />
@@ -154,7 +154,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
             <Label>Status</Label>
             <Select
               value={filters.status || ''}
-              onValueChange={(value) => handleFilterChange('status', value || undefined)}
+              onValueChange={(value) => handleFilterChange('status', (value || undefined) as ProductStatus | undefined)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All statuses" />
@@ -260,4 +260,3 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
 };
 
 export default ProductFiltersComponent;
-

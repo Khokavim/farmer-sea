@@ -1,5 +1,27 @@
 const { Order, OrderItem, Product, User } = require('../models');
 const { v4: uuidv4 } = require('uuid');
+const { releaseEscrowForOrder } = require('./shipmentController');
+
+const ORDER_STATUSES = new Set([
+  'pending',
+  'confirmed',
+  'processing',
+  'shipped',
+  'delivered',
+  'cancelled'
+]);
+
+const STATUS_RANK = {
+  pending: 0,
+  confirmed: 1,
+  processing: 2,
+  shipped: 3,
+  delivered: 4
+};
+
+function getRank(status) {
+  return Object.prototype.hasOwnProperty.call(STATUS_RANK, status) ? STATUS_RANK[status] : null;
+}
 
 const generateOrderNumber = () => {
   const timestamp = Date.now().toString().slice(-6);
@@ -11,9 +33,17 @@ const createOrder = async (req, res) => {
   try {
     const { items, shippingAddress, billingAddress, notes } = req.body;
 
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order must include at least one item'
+      });
+    }
+
     // Validate products and calculate totals
     let subtotal = 0;
     const orderItems = [];
+    let sellerId = null;
 
     for (const item of items) {
       const product = await Product.findByPk(item.productId);
@@ -28,6 +58,16 @@ const createOrder = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: `Insufficient stock for ${product.name}. Available: ${product.stock}`
+        });
+      }
+
+      // P0: current fulfillment + escrow logic is order-level; do not allow mixed-seller carts.
+      if (!sellerId) {
+        sellerId = product.farmerId || null;
+      } else if (product.farmerId !== sellerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mixed-seller carts are not supported yet. Please place separate orders per farmer.'
         });
       }
 
@@ -231,10 +271,11 @@ const getOrderById = async (req, res) => {
     }
 
     // Check authorization
-    const isAuthorized = 
+    const isAuthorized =
       order.buyerId === req.user.id ||
       req.user.role === 'admin' ||
-      (req.user.role === 'farmer' && order.items.some(item => item.product.farmerId === req.user.id));
+      ((req.user.role === 'farmer' || req.user.role === 'supplier') &&
+        order.items.some(item => item.product.farmerId === req.user.id));
 
     if (!isAuthorized) {
       return res.status(403).json({
@@ -262,7 +303,27 @@ const updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status, notes } = req.body;
 
-    const order = await Order.findByPk(id);
+    if (!status || typeof status !== 'string' || !ORDER_STATUSES.has(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
+      });
+    }
+
+    const order = await Order.findByPk(id, {
+      include: [
+        {
+          model: OrderItem,
+          as: 'items',
+          include: [
+            {
+              model: Product,
+              as: 'product'
+            }
+          ]
+        }
+      ]
+    });
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -270,23 +331,91 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Check authorization
-    const isAuthorized = 
-      order.buyerId === req.user.id ||
-      req.user.role === 'admin' ||
-      (req.user.role === 'farmer' && order.items.some(item => item.product.farmerId === req.user.id));
+    const isAdmin = req.user.role === 'admin';
+    const isBuyer = order.buyerId === req.user.id;
+    const isSeller =
+      (req.user.role === 'farmer' || req.user.role === 'supplier') &&
+      order.items.some(item => item.product.farmerId === req.user.id);
 
-    if (!isAuthorized) {
+    if (!isAdmin && !isBuyer && !isSeller) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this order'
       });
     }
 
+    // Prevent updates to terminal states (unless admin)
+    if (!isAdmin && ['cancelled', 'delivered'].includes(order.status)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Order cannot be updated at this stage'
+      });
+    }
+
+    // Role-based status updates:
+    // - Buyer: can only confirm delivery (delivered)
+    // - Seller (farmer/supplier): can move order forward up to shipped, but not delivered/cancelled
+    // - Admin: unrestricted
+    if (!isAdmin) {
+      if (isBuyer) {
+        if (status !== 'delivered') {
+          return res.status(403).json({
+            success: false,
+            message: 'Buyers can only confirm delivery'
+          });
+        }
+
+        if (order.paymentStatus !== 'paid') {
+          return res.status(409).json({
+            success: false,
+            message: 'Order not paid'
+          });
+        }
+
+        if (order.status !== 'shipped') {
+          return res.status(409).json({
+            success: false,
+            message: 'Order must be shipped before it can be marked delivered'
+          });
+        }
+      }
+
+      if (isSeller) {
+        const allowedSellerStatuses = new Set(['confirmed', 'processing', 'shipped']);
+        if (!allowedSellerStatuses.has(status)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Not authorized to set this status'
+          });
+        }
+
+        if (order.paymentStatus !== 'paid') {
+          return res.status(409).json({
+            success: false,
+            message: 'Order must be paid before fulfillment can begin'
+          });
+        }
+
+        const prevRank = getRank(order.status);
+        const nextRank = getRank(status);
+        if (prevRank !== null && nextRank !== null && nextRank < prevRank) {
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot move order status backwards'
+          });
+        }
+      }
+    }
+
+    const previousStatus = order.status;
     await order.update({ 
       status,
       notes: notes || order.notes
     });
+
+    if (status === 'delivered' && previousStatus !== 'delivered') {
+      await releaseEscrowForOrder(order.id);
+    }
 
     res.json({
       success: true,
@@ -371,4 +500,3 @@ module.exports = {
   updateOrderStatus,
   cancelOrder
 };
-
